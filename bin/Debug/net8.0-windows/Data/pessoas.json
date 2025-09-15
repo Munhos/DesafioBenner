@@ -1,0 +1,38 @@
+[
+  {
+    "Id": 1,
+    "Nome": "a",
+    "CPF": "a",
+    "Endereco": "a"
+  },
+  {
+    "Id": 2,
+    "Nome": "b",
+    "CPF": "b",
+    "Endereco": null
+  },
+  {
+    "Id": 3,
+    "Nome": "c",
+    "CPF": "c",
+    "Endereco": null
+  },
+  {
+    "Id": 4,
+    "Nome": "d",
+    "CPF": "d",
+    "Endereco": null
+  },
+  {
+    "Id": 5,
+    "Nome": "e",
+    "CPF": "e",
+    "Endereco": "e"
+  },
+  {
+    "Id": 6,
+    "Nome": "ad",
+    "CPF": "ada",
+    "Endereco": "da"
+  }
+]

@@ -1,0 +1,25 @@
+﻿<Window x:Class="WpfApp.Views.Pessoas.NovaPessoaView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Nova Pessoa" Height="250" Width="400"
+        WindowStartupLocation="CenterScreen">
+    <Border Background="WhiteSmoke" Padding="10" CornerRadius="4">
+        <StackPanel>
+            <TextBlock Text="Preencha ou Edite os campos abaixo:" FontWeight="Bold" Margin="0,0,0,8"/>
+
+            <TextBlock Text="Nome:"/>
+            <TextBox Text="{Binding Nome, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Text="CPF:" Margin="0,6,0,0"/>
+            <TextBox Text="{Binding CPF, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Text="Endereço:" Margin="0,6,0,0"/>
+            <TextBox Text="{Binding Endereco, UpdateSourceTrigger=PropertyChanged}" />
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                <Button Content="Salvar" Width="80" Margin="0,0,8,0" Command="{Binding AdicionarOuAtualizarCommand}" />
+                <Button Content="Cancelar" Width="80" Click="Cancelar_Click"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>
