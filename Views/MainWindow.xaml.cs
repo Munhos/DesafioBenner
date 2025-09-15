@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using WpfApp.Views;
 using WpfApp.Views.Produtos;
-
+using System.Windows.Controls;
 
 namespace WpfApp
 {
@@ -27,5 +27,11 @@ namespace WpfApp
         {
             MainContent.Content = new PedidoView();
         }
+
+        public void TrocarConteudo(UserControl novaView)
+        {
+            MainContent.Content = novaView;
+        }
+
     }
 }
