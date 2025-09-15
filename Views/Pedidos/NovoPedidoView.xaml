@@ -8,11 +8,9 @@
         <StackPanel>
             <TextBlock Text="Preencha ou Edite os campos:" FontWeight="Bold" Margin="0,0,0,8"/>
 
-            <!-- Pessoa -->
             <TextBlock Text="Pessoa:"/>
             <TextBox Text="{Binding PessoaSelecionada.Nome}" IsReadOnly="True"/>
 
-            <!-- Produtos -->
             <TextBlock Text="Produtos:" Margin="0,6,0,0"/>
             <ListBox x:Name="ProdutosListBox"
                      ItemsSource="{Binding ProdutosDisponiveis}"
@@ -21,21 +19,17 @@
                      Height="120"
                      SelectionChanged="ProdutosListBox_SelectionChanged"/>
 
-            <!-- Valor Total -->
             <TextBlock Text="Valor Total:" Margin="0,6,0,0"/>
             <TextBox Text="{Binding ValorSelecionados, Mode=OneWay, StringFormat=C}" IsReadOnly="True"/>
 
-            <!-- Forma Pagamento -->
             <TextBlock Text="Forma de Pagamento:" Margin="0,6,0,0"/>
-            <ComboBox ItemsSource="{Binding FormasPagamentoPossiveis}" SelectedItem="{Binding FormaPagamento}"/>
+			<ComboBox ItemsSource="{Binding FormasPagamentoPossiveis}" SelectedItem="{Binding FormaPagamento}"/>
 
-            <!-- Status -->
-            <TextBlock Text="Status:" Margin="0,6,0,0"/>
-            <ComboBox ItemsSource="{Binding StatusPossiveis}" SelectedItem="{Binding Status}"/>
+			<TextBlock Text="Status:" Margin="0,6,0,0"/>
+			<ComboBox ItemsSource="{Binding TodosStatus}" SelectedItem="{Binding StatusEdicao}"/>
 
-            <!-- Botões -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-                <Button Content="Salvar" Width="80" Margin="0,0,8,0" Command="{Binding SalvarPedidoCommand}"/>
+			<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                <Button Content="Salvar" Width="80" Margin="0,0,8,0" Command="{Binding AdicionarOuAtualizarCommand}"/>
                 <Button Content="Cancelar" Width="80" Click="Cancelar_Click"/>
             </StackPanel>
         </StackPanel>

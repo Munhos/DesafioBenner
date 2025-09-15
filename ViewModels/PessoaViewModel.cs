@@ -1,20 +1,69 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using WpfApp.Models;
 using WpfApp.Services;
+using WpfApp.Views;
+using WpfApp.Views.Pessoas;
 
 namespace WpfApp.ViewModels
 {
     public class PessoaViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
-        void OnChanged(string nome) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nome));
+        private void OnChanged(string nome) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nome));
 
         private readonly PessoaService _service = new PessoaService();
 
-        public ObservableCollection<Pessoa> Pessoas { get; set; } = new();
+        public ObservableCollection<Pessoa> _pessoas = new();
+        public ObservableCollection<Pessoa> Pessoas
+        {
+            get => _pessoas;
+            set
+            {
+                _pessoas = value;
+                OnChanged(nameof(Pessoas));
+                FiltrarPessoas();
+            }
+        }
+       
+        private ObservableCollection<Pessoa> _pessoasFiltradas = new();
+        public ObservableCollection<Pessoa> PessoasFiltradas
+        {
+            get => _pessoasFiltradas;
+            set 
+            { 
+                _pessoasFiltradas = value; 
+                OnChanged(nameof(PessoasFiltradas)); 
+            }
+        }
+
+        private string _filtroNome = "";
+        public string FiltroNome
+        {
+            get => _filtroNome;
+            set 
+            { 
+                _filtroNome = value; 
+                OnChanged(nameof(FiltroNome)); 
+                FiltrarPessoas(); 
+            }
+        }
+
+        private string _filtroCPF = "";
+        public string FiltroCPF
+        {
+            get => _filtroCPF;
+            set 
+            { 
+                _filtroCPF = value; 
+                OnChanged(nameof(FiltroCPF)); 
+                FiltrarPessoas(); 
+            }
+        }
 
         public string Nome { get; set; } = "";
         public string CPF { get; set; } = "";
@@ -38,60 +87,60 @@ namespace WpfApp.ViewModels
                     Nome = CPF = Endereco = "";
                 }
                 OnChanged(nameof(PessoaSelecionada));
-                OnChanged(nameof(BotaoTexto));
                 OnChanged(nameof(Nome));
                 OnChanged(nameof(CPF));
                 OnChanged(nameof(Endereco));
             }
         }
 
-        public string BotaoTexto => PessoaSelecionada != null ? "Atualizar" : "Salvar";
-
         public object? ConteudoPessoa { get; set; }
         public bool IsNovaPessoaAberta => ConteudoPessoa != null;
 
-        // Comandos
         public ICommand AdicionarOuAtualizarCommand { get; }
         public ICommand AbrirNovaPessoaCommand { get; }
         public ICommand FecharNovaPessoaCommand { get; }
         public ICommand EditarPessoaCommand { get; }
         public ICommand ExcluirPessoaCommand { get; }
+        public ICommand NovoPedidoPessoaCommand { get; }
 
         public PessoaViewModel()
         {
             Pessoas = new ObservableCollection<Pessoa>(_service.CarregarPessoas());
+            FiltrarPessoas();
 
-            // Salvar somente ao clicar em Salvar
             AdicionarOuAtualizarCommand = new RelayCommand(_ =>
             {
-                if (Nome == "")
+                if (string.IsNullOrWhiteSpace(Nome))
                 {
                     MessageBox.Show("Preencha um nome");
                     return;
                 }
 
-                if (CPF == "")
+                if (string.IsNullOrWhiteSpace(CPF))
                 {
                     MessageBox.Show("Preencha um CPF");
                     return;
                 }
 
+                if (!IsCpfValido(CPF))
+                {
+                    MessageBox.Show("CPF inválido");
+                    return;
+                }
+
                 if (PessoaSelecionada != null)
                 {
-                    // Atualiza a pessoa selecionada
                     PessoaSelecionada.Nome = Nome;
                     PessoaSelecionada.CPF = CPF;
                     PessoaSelecionada.Endereco = Endereco;
 
                     _service.SalvarOuAtualizarPessoa(PessoaSelecionada);
 
-                    // Atualiza a coleção para refletir mudanças no DataGrid
                     var index = Pessoas.IndexOf(PessoaSelecionada);
                     if (index >= 0) Pessoas[index] = PessoaSelecionada;
                 }
                 else
                 {
-                    // Cria nova pessoa
                     var nova = new Pessoa
                     {
                         Nome = Nome,
@@ -103,26 +152,24 @@ namespace WpfApp.ViewModels
                 }
 
                 LimparCampos();
+                FiltrarPessoas();
             });
 
-            // Abrir nova pessoa
+
             AbrirNovaPessoaCommand = new RelayCommand(_ =>
             {
                 PessoaSelecionada = null;
                 AbrirEdicao();
             });
 
-            // Fechar janela de edição
             FecharNovaPessoaCommand = new RelayCommand(_ => ConteudoPessoa = null);
 
-            // Editar pessoa selecionada
             EditarPessoaCommand = new RelayCommand(_ =>
             {
                 if (PessoaSelecionada != null)
                     AbrirEdicao();
             });
 
-            // Excluir pessoa selecionada
             ExcluirPessoaCommand = new RelayCommand(_ =>
             {
                 if (PessoaSelecionada != null)
@@ -130,14 +177,34 @@ namespace WpfApp.ViewModels
                     _service.ExcluirPessoa(PessoaSelecionada.Id);
                     Pessoas.Remove(PessoaSelecionada);
                     LimparCampos();
+                    FiltrarPessoas();
+                }
+            });
+
+            NovoPedidoPessoaCommand = new RelayCommand(_ =>
+            {
+                if (PessoaSelecionada != null)
+                {
+                    var pedidosVM = new PedidosViewModel
+                    {
+                        PessoaSelecionada = PessoaSelecionada
+                    };
+
+                    var pedidosView = new PedidoView
+                    {
+                        DataContext = pedidosVM
+                    };
+
+                    var mainWindow = Application.Current.MainWindow as MainWindow;
+                    mainWindow?.TrocarConteudo(pedidosView);
                 }
             });
         }
 
         private void AbrirEdicao()
         {
-            ConteudoPessoa = new Views.Pessoas.NovaPessoaView { DataContext = this };
-            ((Window)ConteudoPessoa).ShowDialog();
+            var window = new NovaPessoaView { DataContext = this };
+            window.ShowDialog();
         }
 
         private void LimparCampos()
@@ -149,6 +216,46 @@ namespace WpfApp.ViewModels
             OnChanged(nameof(CPF));
             OnChanged(nameof(Endereco));
         }
-    }
 
+        private void FiltrarPessoas()
+        {
+            var query = Pessoas.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(FiltroNome))
+                query = query.Where(p => p.Nome.Contains(FiltroNome, StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrWhiteSpace(FiltroCPF))
+                query = query.Where(p => p.CPF.Contains(FiltroCPF, StringComparison.OrdinalIgnoreCase));
+
+            PessoasFiltradas = new ObservableCollection<Pessoa>(query);
+        }
+
+        private bool IsCpfValido(string cpf)
+        {
+            if (string.IsNullOrWhiteSpace(cpf)) return false;
+
+            cpf = new string(cpf.Where(char.IsDigit).ToArray());
+
+            if (cpf.Length != 11) return false;
+            if (new string(cpf[0], 11) == cpf) return false;
+
+            int[] mult1 = { 10, 9, 8, 7, 6, 5, 4, 3, 2 };
+            int[] mult2 = { 11, 10, 9, 8, 7, 6, 5, 4, 3, 2 };
+
+            string tempCpf = cpf.Substring(0, 9);
+            int soma = 0;
+            for (int i = 0; i < 9; i++) soma += int.Parse(tempCpf[i].ToString()) * mult1[i];
+            int resto = soma % 11;
+            resto = resto < 2 ? 0 : 11 - resto;
+            tempCpf += resto;
+
+            soma = 0;
+            for (int i = 0; i < 10; i++) soma += int.Parse(tempCpf[i].ToString()) * mult2[i];
+            resto = soma % 11;
+            resto = resto < 2 ? 0 : 11 - resto;
+
+            return cpf.EndsWith(resto.ToString());
+        }
+
+    }
 }

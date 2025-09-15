@@ -33,7 +33,7 @@ namespace WpfApp.ViewModels
             {
                 _pessoaSelecionada = value;
                 OnPropertyChanged(nameof(PessoaSelecionada));
-                FiltrarPedidosPorPessoa();
+                FiltrarPedidos();
             }
         }
 
@@ -48,19 +48,47 @@ namespace WpfApp.ViewModels
             }
         }
 
+        public ObservableCollection<AllStatus> TodosStatus { get; set; }
+
+        private AllStatus? _statusFiltro;
+        public AllStatus? StatusFiltro
+        {
+            get => _statusFiltro;
+            set
+            {
+                _statusFiltro = value;
+                OnPropertyChanged(nameof(StatusFiltro));
+                FiltrarPedidos();
+            }
+        }
+
+        private AllStatus _statusEdicao = AllStatus.Pendente;
+        public AllStatus StatusEdicao
+        {
+            get => _statusEdicao;
+            set
+            {
+                _statusEdicao = value;
+                OnPropertyChanged(nameof(StatusEdicao));
+            }
+        }
+
         public FormasPagamento FormaPagamento { get; set; } = FormasPagamento.Dinheiro;
-        public AllStatus Status { get; set; } = AllStatus.Pendente;
+
+        // usado nos filtros
+        public AllStatus? StatusSelecionado { get; set; } = AllStatus.Pendente;
 
         public decimal ValorTotal => PedidosFiltrados.Sum(p => (decimal)p.ValorTotal);
         public decimal ValorSelecionados => ProdutosSelecionados.Sum(p => (decimal)p.Valor);
 
         public Array FormasPagamentoPossiveis => Enum.GetValues(typeof(FormasPagamento));
-        public Array StatusPossiveis => Enum.GetValues(typeof(AllStatus));
 
         public ICommand SalvarPedidoCommand { get; }
         public ICommand ExcluirPedidoCommand { get; }
-        public ICommand AdicionarPedidoCommand { get; }
+        public ICommand AdicionarOuAtualizarCommand { get; }
         public ICommand EditarPedidoCommand { get; }
+        public ICommand AdicionarPedidoCommand { get; }
+
 
         public object? ConteudoPedido { get; set; }
 
@@ -68,9 +96,12 @@ namespace WpfApp.ViewModels
         {
             Pessoas = new ObservableCollection<Pessoa>(_pessoaService.CarregarPessoas());
             ProdutosDisponiveis = new ObservableCollection<Produto>(_produtoService.CarregarProdutos());
+            TodosStatus = new ObservableCollection<AllStatus>((AllStatus[])Enum.GetValues(typeof(AllStatus)));
+
             AtualizarPedidos();
 
             SalvarPedidoCommand = new RelayCommand(_ => SalvarPedido());
+
             ExcluirPedidoCommand = new RelayCommand(obj =>
             {
                 if (obj is Pedido pedido)
@@ -80,10 +111,67 @@ namespace WpfApp.ViewModels
                 }
             });
 
-            AdicionarPedidoCommand = new RelayCommand(_ => AbrirEdicao(null));
-            EditarPedidoCommand = new RelayCommand(_ => { if (PedidoSelecionado != null) AbrirEdicao(PedidoSelecionado); });
+            AdicionarOuAtualizarCommand = new RelayCommand(_ =>
+            {
+                if (PedidoSelecionado != null) 
+                {
+                    var idAntigo = PedidoSelecionado.Id;
+
+                    PedidoSelecionado.Pessoa = PessoaSelecionada?.Nome ?? "";
+                    PedidoSelecionado.Produtos = ProdutosSelecionados.ToList();
+                    PedidoSelecionado.ValorTotal = ProdutosSelecionados.Sum(p => (decimal)p.Valor);
+                    PedidoSelecionado.DataVenda = DateTime.Now;
+                    PedidoSelecionado.FormaPagamento = FormaPagamento;
+                    PedidoSelecionado.Status = StatusEdicao;
+
+                    PedidoSelecionado.Id = idAntigo; 
+
+                    _pedidosService.SalvarOuAtualizarPedido(PedidoSelecionado);
+
+                    var index = Pedidos.IndexOf(PedidoSelecionado);
+                    if (index >= 0)
+                        Pedidos[index] = PedidoSelecionado;
+                }
+                else 
+                {
+                    var novoPedido = new Pedido
+                    {
+                        Pessoa = PessoaSelecionada?.Nome ?? "",
+                        Produtos = ProdutosSelecionados.ToList(),
+                        ValorTotal = ProdutosSelecionados.Sum(p => (decimal)p.Valor),
+                        DataVenda = DateTime.Now,
+                        FormaPagamento = FormaPagamento,
+                        Status = StatusEdicao
+                    };
+
+                    _pedidosService.SalvarOuAtualizarPedido(novoPedido);
+                    Pedidos.Add(novoPedido);
+                }
+
+                LimparSelecoes();
+                FiltrarPedidos();
+            });
+
+            EditarPedidoCommand = new RelayCommand(_ =>
+            {
+                if (PedidoSelecionado.Status == AllStatus.Recebido)
+                {
+                    MessageBox.Show("Pedidos recebidos não podem ser editados.");
+                    return;
+                }
+
+                if (PedidoSelecionado != null)
+                    AbrirEdicao(PedidoSelecionado);
+            });
 
             ProdutosSelecionados.CollectionChanged += (_, __) => OnPropertyChanged(nameof(ValorSelecionados));
+
+            AdicionarPedidoCommand = new RelayCommand(_ =>
+            {
+                var window = new NovoPedidoView { DataContext = this };
+                ConteudoPedido = window;
+                window.ShowDialog();
+            });
         }
 
         private void SalvarPedido()
@@ -99,38 +187,41 @@ namespace WpfApp.ViewModels
                 return;
             }
 
-            Pedido pedidoParaSalvar;
-
-            if (PedidoSelecionado == null) // novo pedido
+            if (PedidoSelecionado == null) 
             {
-                pedidoParaSalvar = new Pedido
+                var novoPedido = new Pedido
                 {
                     Pessoa = PessoaSelecionada.Nome,
                     Produtos = ProdutosSelecionados.ToList(),
                     ValorTotal = ValorSelecionados,
                     DataVenda = DateTime.Now,
                     FormaPagamento = FormaPagamento,
-                    Status = Status
+                    Status = StatusEdicao
                 };
+
+                _pedidosService.SalvarOuAtualizarPedido(novoPedido);
+                Pedidos.Add(novoPedido);
             }
-            else // edição
+            else 
             {
-                pedidoParaSalvar = new Pedido
-                {
-                    Id = PedidoSelecionado.Id, // mantém Id existente
-                    Pessoa = PessoaSelecionada.Nome,
-                    Produtos = ProdutosSelecionados.ToList(),
-                    ValorTotal = ValorSelecionados,
-                    DataVenda = DateTime.Now,
-                    FormaPagamento = FormaPagamento,
-                    Status = Status
-                };
+                var idAntigo = PedidoSelecionado.Id;
+
+                PedidoSelecionado.Pessoa = PessoaSelecionada.Nome;
+                PedidoSelecionado.Produtos = ProdutosSelecionados.ToList();
+                PedidoSelecionado.ValorTotal = ValorSelecionados;
+                PedidoSelecionado.DataVenda = DateTime.Now;
+                PedidoSelecionado.FormaPagamento = FormaPagamento;
+                PedidoSelecionado.Status = StatusEdicao;
+                PedidoSelecionado.Id = idAntigo; 
+
+                _pedidosService.SalvarOuAtualizarPedido(PedidoSelecionado);
+
+                var index = Pedidos.IndexOf(PedidoSelecionado);
+                if (index >= 0)
+                    Pedidos[index] = PedidoSelecionado;
             }
 
-            _pedidosService.SalvarOuAtualizarPedido(pedidoParaSalvar);
-            AtualizarPedidos();
-            LimparSelecoes();
-
+            FiltrarPedidos();
             if (ConteudoPedido is Window w) w.Close();
         }
 
@@ -139,41 +230,23 @@ namespace WpfApp.ViewModels
             Pedidos.Clear();
             foreach (var p in _pedidosService.CarregarPedidos())
                 Pedidos.Add(p);
-            FiltrarPedidosPorPessoa();
+            FiltrarPedidos();
         }
 
-        private void FiltrarPedidosPorPessoa()
+        private void AbrirEdicao(Pedido pedido)
         {
-            var selecionadoId = PedidoSelecionado?.Id;
-
-            PedidosFiltrados.Clear();
-            if (PessoaSelecionada == null) return;
-
-            foreach (var p in Pedidos.Where(p => p.Pessoa == PessoaSelecionada.Nome))
-                PedidosFiltrados.Add(p);
-
-            // restaura seleção pelo Id
-            if (selecionadoId != null)
-                PedidoSelecionado = PedidosFiltrados.FirstOrDefault(p => p.Id == selecionadoId);
-
-            OnPropertyChanged(nameof(ValorTotal));
-        }
-
-        private void AbrirEdicao(Pedido? pedido)
-        {
-            PedidoSelecionado = pedido;
+            PessoaSelecionada = Pessoas.FirstOrDefault(p => p.Nome == pedido.Pessoa);
             ProdutosSelecionados.Clear();
+            foreach (var produto in pedido.Produtos)
+                ProdutosSelecionados.Add(produto);
 
-            if (pedido != null)
-            {
-                foreach (var p in pedido.Produtos) ProdutosSelecionados.Add(p);
-                FormaPagamento = pedido.FormaPagamento;
-                Status = pedido.Status;
-                PessoaSelecionada = Pessoas.FirstOrDefault(p => p.Nome == pedido.Pessoa);
-            }
+            FormaPagamento = pedido.FormaPagamento;
+            StatusEdicao = pedido.Status;
+            PedidoSelecionado = pedido;
 
-            ConteudoPedido = new NovoPedidoView { DataContext = this };
-            ((Window)ConteudoPedido).ShowDialog();
+            var window = new NovoPedidoView { DataContext = this };
+            ConteudoPedido = window;
+            window.ShowDialog();
         }
 
         private void LimparSelecoes()
@@ -182,7 +255,24 @@ namespace WpfApp.ViewModels
             PessoaSelecionada = null;
             PedidoSelecionado = null;
             FormaPagamento = FormasPagamento.Dinheiro;
-            Status = AllStatus.Pendente;
+            StatusSelecionado = AllStatus.Pendente;
+        }
+
+        private void FiltrarPedidos()
+        {
+            var query = Pedidos.AsEnumerable();
+
+            if (PessoaSelecionada != null)
+                query = query.Where(p => p.Pessoa == PessoaSelecionada.Nome);
+
+            if (StatusFiltro.HasValue)
+                query = query.Where(p => p.Status == StatusFiltro.Value);
+
+            PedidosFiltrados.Clear();
+            foreach (var p in query)
+                PedidosFiltrados.Add(p);
+
+            OnPropertyChanged(nameof(ValorTotal));
         }
     }
 }

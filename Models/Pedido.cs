@@ -18,7 +18,7 @@ namespace WpfApp.Models
         Recebido
     }
 
-    internal class Pedido
+    public class Pedido
     {
         public int Id { get; set; }
         public required string Pessoa { get; set; }

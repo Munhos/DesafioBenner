@@ -8,37 +8,51 @@
     </UserControl.Resources>
 
     <Border Padding="10">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+		<Grid>
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="*"/>
+				<RowDefinition Height="Auto"/>
+			</Grid.RowDefinitions>
 
-            <!-- DataGrid editável -->
-            <DataGrid Grid.Row="0"
-                      ItemsSource="{Binding Pessoas}"
-                      SelectedItem="{Binding PessoaSelecionada, Mode=TwoWay}"
-                      AutoGenerateColumns="False"
-                      CanUserAddRows="False"
-                      IsReadOnly="True"
-                      RowHeight="30"
-                      GridLinesVisibility="Horizontal">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50" IsReadOnly="True"/>
-                    <DataGridTextColumn Header="Nome" Binding="{Binding Nome, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
-                    <DataGridTextColumn Header="CPF" Binding="{Binding CPF, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
-                    <DataGridTextColumn Header="Endereço" Binding="{Binding Endereco, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
-                </DataGrid.Columns>
-            </DataGrid>
+			<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0 0 0 10" HorizontalAlignment="Left">
+				<StackPanel Orientation="Vertical" Margin="0,0,10,0">
+					<TextBlock Text="Nome" Margin="0 0 10 0"/>
+					<TextBox Width="150" Text="{Binding FiltroNome, UpdateSourceTrigger=PropertyChanged}" />
+				</StackPanel>
 
-            <!-- Botões de ação -->
-            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-                <Button Content="Incluir" Width="80" Command="{Binding AbrirNovaPessoaCommand}" Margin="0,0,5,0"/>
-                <Button Content="Editar" Width="80" Command="{Binding EditarPessoaCommand}" 
-                        IsEnabled="{Binding PessoaSelecionada, Converter={StaticResource BoolToVis}}" Margin="0,0,5,0"/>
-                <Button Content="Excluir" Width="80" Command="{Binding ExcluirPessoaCommand}" 
-                        IsEnabled="{Binding PessoaSelecionada, Converter={StaticResource BoolToVis}}"/>
-            </StackPanel>
-        </Grid>
-    </Border>
+				<StackPanel Orientation="Vertical" Margin="0,0,10,0">
+					<TextBlock Text="CPF" Margin="0 0 10 0"/>
+					<TextBox Width="100" Text="{Binding FiltroCPF, UpdateSourceTrigger=PropertyChanged}" />
+				</StackPanel>
+			</StackPanel>
+
+			<DataGrid Grid.Row="1"
+					  ItemsSource="{Binding PessoasFiltradas}"
+					  SelectedItem="{Binding PessoaSelecionada, Mode=TwoWay}"
+					  AutoGenerateColumns="False"
+					  CanUserAddRows="False"
+					  IsReadOnly="True"
+					  RowHeight="30"
+					  GridLinesVisibility="Horizontal">
+				<DataGrid.Columns>
+					<DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50" IsReadOnly="True"/>
+					<DataGridTextColumn Header="Nome" Binding="{Binding Nome}" Width="*"/>
+					<DataGridTextColumn Header="CPF" Binding="{Binding CPF}" Width="*"/>
+					<DataGridTextColumn Header="Endereço" Binding="{Binding Endereco}" Width="*"/>
+				</DataGrid.Columns>
+			</DataGrid>
+
+			<StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+				<Button Content="Incluir" Width="80" Command="{Binding AbrirNovaPessoaCommand}" Margin="0,0,5,0"/>
+				<Button Content="Editar" Width="80" Command="{Binding EditarPessoaCommand}"
+						IsEnabled="{Binding PessoaSelecionada, Converter={StaticResource BoolToVis}}" Margin="0,0,5,0"/>
+				<Button Content="Incluir Pedido" Width="80" Command="{Binding NovoPedidoPessoaCommand}"
+						IsEnabled="{Binding PessoaSelecionada, Converter={StaticResource BoolToVis}}" Margin="0,0,5,0"/>
+				<Button Content="Excluir" Width="80" Command="{Binding ExcluirPessoaCommand}"
+						IsEnabled="{Binding PessoaSelecionada, Converter={StaticResource BoolToVis}}"/>
+			</StackPanel>
+		</Grid>
+
+	</Border>
 </UserControl>

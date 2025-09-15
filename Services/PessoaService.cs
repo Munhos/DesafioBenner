@@ -29,7 +29,6 @@ namespace WpfApp.Services
         {
             var pessoas = CarregarPessoas();
 
-            // Atualiza se existir
             var existente = pessoas.FirstOrDefault(p => p.Id == pessoa.Id);
             if (existente != null)
             {
@@ -39,7 +38,6 @@ namespace WpfApp.Services
             }
             else
             {
-                // Novo Id
                 pessoa.Id = pessoas.Any() ? pessoas.Max(p => p.Id) + 1 : 1;
                 pessoas.Add(pessoa);
             }

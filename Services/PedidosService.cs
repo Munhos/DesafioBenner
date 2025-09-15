@@ -7,14 +7,14 @@ using WpfApp.Models;
 
 namespace WpfApp.Services
 {
-    internal class PedidosService
+    public class PedidosService
     {
         private readonly string _filePath;
 
         public PedidosService()
         {
             string binDir = AppDomain.CurrentDomain.BaseDirectory;
-            string projetoDir = Path.GetFullPath(Path.Combine(binDir, "..\\..\\.."));
+            string projetoDir = Path.Combine(binDir, "..\\..\\..");
             string dataFolder = Path.Combine(projetoDir, "Data");
 
             if (!Directory.Exists(dataFolder))
@@ -26,27 +26,34 @@ namespace WpfApp.Services
                 File.WriteAllText(_filePath, "[]");
         }
 
-        // Salva ou atualiza um pedido existente
+        public List<Pedido> CarregarPedidos()
+        {
+            if (!File.Exists(_filePath))
+                return new List<Pedido>();
+
+            var json = File.ReadAllText(_filePath);
+            return JsonSerializer.Deserialize<List<Pedido>>(json) ?? new List<Pedido>();
+        }
+
         public void SalvarOuAtualizarPedido(Pedido pedido)
         {
             var pedidos = CarregarPedidos();
 
-            // Remove o antigo caso exista
             var existente = pedidos.FirstOrDefault(p => p.Id == pedido.Id);
             if (existente != null)
-                pedidos.Remove(existente);
-
-            // Se o Id for zero, define um novo Id
-            if (pedido.Id == 0)
+            {
+                var index = pedidos.IndexOf(existente);
+                pedidos[index] = pedido;
+            }
+            else
+            {
                 pedido.Id = pedidos.Any() ? pedidos.Max(p => p.Id) + 1 : 1;
-
-            // Adiciona o pedido atualizado
-            pedidos.Add(pedido);
+                pedidos.Add(pedido);
+            }
 
             SalvarLista(pedidos);
         }
 
-        // Exclui um pedido pelo Id
         public void ExcluirPedido(int id)
         {
             var pedidos = CarregarPedidos();
@@ -58,17 +65,6 @@ namespace WpfApp.Services
             }
         }
 
-        // Carrega todos os pedidos do JSON
-        public List<Pedido> CarregarPedidos()
-        {
-            if (!File.Exists(_filePath))
-                return new List<Pedido>();
-
-            var json = File.ReadAllText(_filePath);
-            return JsonSerializer.Deserialize<List<Pedido>>(json) ?? new List<Pedido>();
-        }
-
-        // Método privado para salvar a lista no arquivo
         private void SalvarLista(List<Pedido> pedidos)
         {
             var json = JsonSerializer.Serialize(pedidos, new JsonSerializerOptions { WriteIndented = true });
